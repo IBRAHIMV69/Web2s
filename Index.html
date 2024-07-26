@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Play Hamster Kombat and collect coins by clicking the hamster!">
+    <meta name="keywords" content="Hamster Kombat, game, coins, fun">
+    <title>Hamster Kombat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1d1d1d;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+        }
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            background-color: #2a2a2a;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .top-bar {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            align-items: center;
+            padding: 10px;
+        }
+        .top-bar h1 {
+            font-size: 1.5rem;
+            color: #ffca28;
+            margin-bottom: 10px;
+        }
+        .top-bar button {
+            background: none;
+            border: none;
+            color: #ffca28;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .coin-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #3a3a3a;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .coin-info div {
+            margin: 0 15px;
+            text-align: center;
+        }
+        .coin-info div span {
+            display: block;
+            font-size: 1.5rem;
+            color: #ffca28;
+        }
+        .coin-balance {
+            font-size: 3rem;
+            color: #ffca28;
+            margin-bottom: 20px;
+        }
+        .robot {
+            font-size: 12rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .energy-bar {
+            width: 80%;
+            background-color: #3a3a3a;
+            border-radius: 20px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+        .energy-bar div {
+            height: 20px;
+            background-color: #ffca28;
+            width: 100%; /* Initial width set to 100% */
+            transition: width 0.3s ease;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            padding: 10px 0;
+            border-top: 1px solid #3a3a3a;
+        }
+        .controls a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: inherit;
+        }
+        .controls button {
+            background-color: transparent;
+            border: none;
+            color: #ffca28;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .control-text {
+            margin-top: 5px;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="top-bar">
+            <h1></h1>
+            <div class="coin-info">
+                <div>
+                    <span id="profit-per-tap">+1</span>
+                    <p>Profit per tap</p>
+                </div>
+                <div>
+                    <span id="profit-per-hour">0</span>
+                    <p>Profit per hour</p>
+                </div>
+            </div>
+            <p class="coin-balance"><i class="fas fa-coins"></i> <span id="coin-balance">0</span></p>
+        </div>
+        <div class="robot" id="hamster" aria-label="Hamster">🦁</div>
+        <div class="energy-bar">
+            <div id="energy-bar-fill">⚡</div>
+        </div>
+        <div class="controls">
+            <a href="https://www.highrevenuenetwork.com/yj516zqeuh?key=67623d7811021ba7d072604ff121c586" target="_blank" aria-label="Collect coins" id="boost-btn">
+                <button><i class="fas fa-bolt"></i></button>
+                <div class="control-text">Boost</div>
+            </a>
+            <a href="https://www.highrevenuenetwork.com/yj516zqeuh?key=67623d7811021ba7d072604ff121c586" target="_blank" aria-label="View wallet" id="earn-btn">
+                <button><i class="fas fa-coins"></i></button>
+                <div class="control-text">Earn more</div>
+            </a>
+            <a href="https://iupt.netlify.app" target="_blank" aria-label="Tasks">
+                <button><i class="fas fa-tasks"></i></button>
+                <div class="control-text">Tasks</div>
+            </a>
+            <a href="https://iupf.netlify.app" target="_blank" aria-label="Friends">
+                <button><i class="fas fa-user-friends"></i></button>
+                <div class="control-text">Friends</div>
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const apiUrl = 'https://api.telegram.org/bot7411607088:AAG8jAWM02lZStQ--CXyqWwO1T3ewsFVoAk/'; // Updated API URL
+let coins = parseInt(localStorage.getItem('coins')) || 0; // Initialize coin balance from localStorage or default to 0
+const profitPerTap = 1;
+let profitPerHour = 0;
+let energy = 500; // Max energy
+const maxEnergy = 500;
+const energyDecayPerTap = 5; // Energy lost per tap
+const energyRegenRate = 1; // Energy gained per interval
+const energyRegenInterval = 1000; // Interval for energy regeneration in milliseconds
+
+// Update HTML elements
+function updateCoinBalance() {
+    document.getElementById('coin-balance').textContent = coins.toLocaleString();
+    localStorage.setItem('coins', coins); // Save coin balance to localStorage
+}
+
+function updateProfitValues() {
+    document.getElementById('profit-per-tap').textContent = `+${profitPerTap}`;
+    document.getElementById('profit-per-hour').textContent = profitPerHour.toFixed(2);
+}
+
+function updateEnergyBar() {
+    const energyBarFill = document.getElementById('energy-bar-fill');
+    const energyPercentage = (energy / maxEnergy) * 100;
+    energyBarFill.style.width = `${energyPercentage}%`;
+}
+
+function collectCoins() {
+    if (energy >= energyDecayPerTap) {
+        coins += profitPerTap;
+        energy -= energyDecayPerTap;
+        updateCoinBalance();
+        updateEnergyBar();
+    } else {
+        ('Not enough energy!'); // Fixed error handling
+    }
+}
+
+function hamsterClicked() {
+    collectCoins();
+}
+
+function regenerateEnergy() {
+    if (energy < maxEnergy) {
+        energy += energyRegenRate;
+        if (energy > maxEnergy) {
+            energy = maxEnergy;
+        }
+        updateEnergyBar();
+    }
+}
+
+function boostEnergy(event) {
+    event.preventDefault(); // Prevent default link action
+    energy = maxEnergy;
+    updateEnergyBar();
+}
+
+function addCoins() {
+    coins += 1000;
+    updateCoinBalance();
+}
+
+function addBonusCoins() {
+    coins += 400000;
+    updateCoinBalance();
+}
+
+// Calculate profit per hour
+function updateProfitPerHour() {
+    const now = new Date();
+    if (typeof lastUpdateTime === 'undefined') {
+        lastUpdateTime = now;
+        return;
+    }
+    const elapsed = (now - lastUpdateTime) / 1000; // Elapsed time in seconds
+    profitPerHour += profitPerTap * (elapsed / 3600); // Update profit per hour
+    lastUpdateTime = now;
+}
+
+// Start energy regeneration loop
+setInterval(regenerateEnergy, energyRegenInterval);
+
+// Start profit per hour update loop
+setInterval(updateProfitPerHour, 1000); // Update every second
+
+// Initialize values
+let lastUpdateTime = new Date();
+updateCoinBalance();
+updateProfitValues();
+updateEnergyBar();
+
+// Add event listeners
+document.getElementById('hamster').addEventListener('click', hamsterClicked);
+document.getElementById('boost-btn').addEventListener('click', boostEnergy);
+document.getElementById('earn-btn').addEventListener('click', addCoins);
+
+document.getElementById('tasks-btn').addEventListener('click', function(event) {
+    event.preventDefault(); // Prevent default link action
+    setTimeout(addBonusCoins, 300000); // Add coins after 5 minutes (300000 ms)
+    window.open('https://youtu.be/9hom7bzhnkk?si=WtR9ubsR2eQGnTjd', '_blank'); // Open the video in a new tab
+});
+    </script>
+</body>
+</html>        
